@@ -69,22 +69,50 @@ class Channel:
             json.dump(attribute_values, f, indent=4, ensure_ascii=False)
 
     def __str__(self):
+        """
+        Возвращает название и ссылку на канал
+        """
+
         return f'{self.title} ({self.url})'
 
     def __add__(self, other):
+        """
+        Позволяет складывать экземпляры класса Channel по количеству подписчиков
+        """
+
         return int(self.subscriber_count) + int(other.subscriber_count)
 
     def __sub__(self, other):
+        """
+        Позволяет вычитать один экземпляр класса Channel из другого по количеству подписчиков
+        """
+
         return int(self.subscriber_count) - int(other.subscriber_count)
 
     def __lt__(self, other):
+        """
+        Позволяет сравнивать знаком '<' экземпляры класса Channel по пколичеству подписчиков
+        """
+
         return int(self.subscriber_count) < int(other.subscriber_count)
 
     def __le__(self, other):
+        """
+        Позволяет сравнивать знаком '<=' экземпляры класса Channel по пколичеству подписчиков
+        """
+
         return int(self.subscriber_count) <= int(other.subscriber_count)
 
     def __gt__(self, other):
+        """
+        Позволяет сравнивать знаком '>' экземпляры класса Channel по пколичеству подписчиков
+        """
+
         return int(self.subscriber_count) > int(other.subscriber_count)
 
     def __ge__(self, other):
+        """
+        Позволяет сравнивать знаком '>=' экземпляры класса Channel по пколичеству подписчиков
+        """
+
         return int(self.subscriber_count) >= int(other.subscriber_count)
