@@ -1,17 +1,13 @@
 import os
+import isodate
 from googleapiclient.discovery import build
-from datetime import datetime
-
-from src.channel import Channel
+from datetime import timedelta
 
 
-class PlayList(Channel):
+class PlayList:
     """
 
     """
-
-    api_key: str = os.getenv('API_KEY')
-    youtube = build('youtube', 'v3', developerKey=api_key)
 
     def __init__(self, id_playlist):
         """
@@ -20,62 +16,47 @@ class PlayList(Channel):
 
         # id плейлиста
         self.__id_playlist = id_playlist
+        self.playlist_videos = self.get_object_service().playlistItems().list(playlistId=self.__id_playlist,
+                                                                              part='contentDetails, snippet',
+                                                                              maxResults=50).execute()
+        self.channel_id = self.playlist_videos['items'][0]['snippet']['channelId']
+        self.video_ids: list[str] = [video['contentDetails']['videoId'] for video in self.playlist_videos['items']]
+        self.video_response = self.get_object_service().videos().list(part='contentDetails,statistics',
+                                                                      id=','.join(self.video_ids)
+                                                                      ).execute()
 
-        # Выполняет запрос к API YouTube для получения информации о плейлисте
-        self.playlist = self.youtube.playlistItems().list(playlistId=self.__id_playlist,part='contentDetails', maxResults=50,).execute()
+        self.title = self.get_playlist_title()
+        self.url = f'https://www.youtube.com/playlist?list={self.__id_playlist}'
 
-        # Название плейлиста
-        self.title = self.playlist['items'][0]['snippet']['title']
+    @classmethod
+    def get_object_service(cls):
+        api_key = os.getenv('API_KEY')
+        return build('youtube', 'v3', developerKey=api_key)
 
-        # Ссылка на плейлист
-        self.url = self.playlist['items'][0]['snippet']['thumbnails']['default']['url']
+    @property
+    def total_duration(self):
+        total = timedelta()
+        for video in self.video_response['items']:
+            iso_8601_duration = video['contentDetails']['duration']
+            duration = isodate.parse_duration(iso_8601_duration)
+            total += duration
 
-    # @property
-    # def total_duration(self):
+        return total
 
-# {
-#     "kind": "youtube#playlistItemListResponse",
-#     "etag": "KIpfSYLFDUJIRlsFAHCKSo29f0c",
-#     "items": [
-#         {
-#             "kind": "youtube#playlistItem",
-#             "etag": "Poczykou137XQAuZSPleKLV8ZHc",
-#             "id": "UEx2X3pPR0tLeFZwai1uMnFMa0VNMkhqOTZMTzZ1cWdRdy41NkI0NEY2RDEwNTU3Q0M2",
-#             "contentDetails": {
-#                 "videoId": "feg3DYywNys",
-#                 "videoPublishedAt": "2023-04-03T14:24:45Z"
-#             }
-#         },
-#         {
-#             "kind": "youtube#playlistItem",
-#             "etag": "gUwzWYM6VWIrrkmxKVcmdZL9bNE",
-#             "id": "UEx2X3pPR0tLeFZwai1uMnFMa0VNMkhqOTZMTzZ1cWdRdy4yODlGNEE0NkRGMEEzMEQy",
-#             "contentDetails": {
-#                 "videoId": "MtWXwMCAApY",
-#                 "videoPublishedAt": "2023-04-03T14:24:45Z"
-#             }
-#         },
-#         {
-#             "kind": "youtube#playlistItem",
-#             "etag": "6LiN_MofK5nqaJ_Q0Zntke6U9N8",
-#             "id": "UEx2X3pPR0tLeFZwai1uMnFMa0VNMkhqOTZMTzZ1cWdRdy4wMTcyMDhGQUE4NTIzM0Y5",
-#             "contentDetails": {
-#                 "videoId": "nApYYXYL9qA",
-#                 "videoPublishedAt": "2023-04-03T14:24:45Z"
-#             }
-#         },
-#         {
-#             "kind": "youtube#playlistItem",
-#             "etag": "btyHRnZF4Z8EYcNd-XVP1N97mek",
-#             "id": "UEx2X3pPR0tLeFZwai1uMnFMa0VNMkhqOTZMTzZ1cWdRdy41MjE1MkI0OTQ2QzJGNzNG",
-#             "contentDetails": {
-#                 "videoId": "cUGyMzWQcGM",
-#                 "videoPublishedAt": "2023-04-03T14:24:45Z"
-#             }
-#         }
-#     ],
-#     "pageInfo": {
-#         "totalResults": 4,
-#         "resultsPerPage": 50
-#     }
-# }
+    def show_best_video(self):
+        count = 0
+        url = ''
+        for video in self.video_response['items']:
+            if int(video['statistics']['likeCount']) > count:
+                count = int(video['statistics']['likeCount'])
+                url = f'https://youtu.be/{video['id']}'
+
+        return url
+
+    def get_playlist_title(self):
+        playlists = self.get_object_service().playlists().list(channelId=self.channel_id,
+                                                               part='contentDetails,snippet',
+                                                               maxResults=50).execute()
+        for playlist in playlists['items']:
+            if playlist['id'] == self.__id_playlist:
+                return playlist['snippet']['title']
