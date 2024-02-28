@@ -32,15 +32,20 @@ class Video:
 
             # Количество лайков видео
             self.like_count = self.video['items'][0]['statistics']['likeCount']
-        except Exception:
-            raise Exception('Ошибка введённого id')
+        except IndexError:
+            # Инициализация в случае сработанного исключения
+            self.title = None
+            self.video_url = None
+            self.view_count = None
+            self.like_count = None
+            raise IndexError('Ошибка введённого id')
 
     def __str__(self):
         """
         Возвращает название видео
         """
 
-        return self.video_title
+        return self.title
 
 
 class PLVideo(Video):
